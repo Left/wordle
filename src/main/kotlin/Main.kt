@@ -1,7 +1,7 @@
 
 
 fun main(args: Array<String>) {
-//    val w = "kinky"
+//    val w = "racer"
 //    val tries = (::productionSolver).singleRound(w)
 //    println("$w $tries")
 //    return

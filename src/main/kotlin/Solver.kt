@@ -119,8 +119,6 @@ fun Solver.singleRound(word: String): List<String> {
     }
 }
 
-val rnd = Random(42)
-
 fun productionSolver(history: List<String>, mask: Masks): String {
     if (mask.yellowMask.mask == 0 && mask.blackMask.mask == 0) {
         //
@@ -128,25 +126,34 @@ fun productionSolver(history: List<String>, mask: Masks): String {
     } else {
         val filteredTargets = ALL_TARGETS.filter {
             mask.sutisfies(it)
-        }.filter { it !in history }
+        }.filter {
+            it !in history
+        }.filter {
+            history.all { h ->
+                val needed = GreenMask.betweenWords(it, h)
+                mask.greenMask.mask and needed.mask == needed.mask
+            }
+        }
 
-        if (filteredTargets.size <= 3) {
+        if (filteredTargets.size <= 2) {
             return filteredTargets.first()
         } else {
             var goodFound = false
+            // println("-".repeat(30))
             return ALL_WORDS
                 .filter { it !in history }
                 .maxByOrNull { w ->
                     if (goodFound) {
                         Int.MIN_VALUE
                     } else {
-                        splitOnGroups(filteredTargets, w, mask).let {
-                            // println("$mask $w (${it.size}) \t$it")
-                            if (it.containsKey(mask)) {
+                        splitOnGroups(filteredTargets, w, mask).let { mapp ->
+                            if (mapp.containsKey(mask)) {
                                 Int.MIN_VALUE
                             } else {
-                                goodFound = it.size == filteredTargets.size
-                                it.size
+                                goodFound = mapp.size == filteredTargets.size
+                                ((mapp.size * mapp.size) / mapp.values.maxOf { it.size }).also {
+                                    // println("$mask $w (${mapp.size} $it) \t$mapp")
+                                }
                             }
                         }
                     }

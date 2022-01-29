@@ -2,6 +2,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.random.Random
 
+/*
 enum class Type(val bg: String) {
     BLACK("100"),
     YELLOW("103"),
@@ -16,6 +17,9 @@ class WordChar(
 }
 
 typealias GuessWord = List<WordChar>
+
+fun GuessWord.toWord() = fold("") { l, r -> l + r }
+ */
 
 @JvmInline
 value class GreenMask(val mask: Int) {
@@ -43,6 +47,21 @@ value class GreenMask(val mask: Int) {
                 }
             }
         }
+
+    fun sutisfies(w: String): Boolean =
+        (0..4).fold(true) { l, idx ->
+            l && (mask shr (idx*5)).and(0x1f).let {
+                (it == 0) || (w[idx] == ('a' + it - 1))
+            }
+        }
+
+    fun isSolved() = (0..4).fold(true) { l, idx ->
+        l && (mask shr (idx*5)).and(0x1f).let {
+            (it != 0)
+        }
+    }
+
+    infix fun or(betweenWords: GreenMask) = GreenMask(mask or betweenWords.mask)
 }
 
 @JvmInline
@@ -51,133 +70,122 @@ value class YellowMask(val mask: Int) {
         if (mask and (1 shl (r - 'a')) != 0) (l + r) else l
     }
 
+    override fun toString() = asCharSet()
+
     fun inverted() = YellowMask(mask.inv())
 
-    fun or(other: YellowMask) = YellowMask(mask or other.mask)
-    fun and(other: YellowMask) = YellowMask(mask and other.mask)
+    infix fun or(other: YellowMask) = YellowMask(mask or other.mask)
+    infix fun and(other: YellowMask) = YellowMask(mask and other.mask)
 
     companion object {
         fun fromWord(s: String) = YellowMask(s.toCharArray().fold(0) { l, r ->
             l or (1 shl (r - 'a'))
         })
+
+        fun fromWordInversed(s: String) = YellowMask(s.toCharArray().fold(0) { l, r ->
+            l or (1 shl (r - 'a')).inv().and(1)
+        })
+
+        val NONE = YellowMask(0)
+        val ALL = YellowMask(0x7fff_ffff)
     }
 }
 
-fun GuessWord.print() = joinToString("")
-
+// fun GuessWord.print() = joinToString("")
+/*
 fun List<GuessWord>.println() = withIndex().joinToString("\n") {
     (idx, it)  -> "${(idx + 1).toString().padStart(4, ' ')}) ${it.print()}"
 }
+*/
 
-typealias Solver = (prev: List<GuessWord>) -> String
-
-fun List<WordChar>.solved() = all { it.type == Type.GREEN }
+typealias Solver = (history: List<String>, prev: Masks) -> String
 
 val ALL_WORDS = Files.readString(Path.of("words.txt")).lines().toSet()
 val ALL_TARGETS = Files.readString(Path.of("targets.txt")).lines().toSet()
 
-val FREQS = Array(5) {
-    Array(26) { 0 }
-}.also {
-    for (w in ALL_TARGETS) {
-        it.forEachIndexed { index, ints ->
-            ints[w[index] - 'a']++
-        }
-    }
-}
-
-fun String.quality() = let { w ->
-    FREQS
-        .withIndex()
-        .map { (index, ints) ->
-            w[index] to ints[w[index] - 'a']
-        }
-        .distinctBy {
-            it.first
-        }
-        .sumOf {
-            it.second
-        }
-}
-
-fun Solver.singleRound(word: String): List<List<WordChar>> {
-    val wordChars = word.toCharArray()
-    val prevGueses = mutableListOf<List<WordChar>>()
+fun Solver.singleRound(word: String): List<String> {
+    val prevGueses = mutableListOf<String>()
+    var mask = Masks.EMPTY
 
     while (true) {
-        val guess = this.invoke(prevGueses)
+        val guess = this.invoke(prevGueses, mask)
+        mask = mask.applyWord(guess, word)
 
-        val res = guess.mapIndexed { i, c ->
-            WordChar(
-                guess[i],
-                if (!wordChars.contains(c)) {
-                    Type.BLACK
-                } else {
-                    if (wordChars[i] == c) {
-                        Type.GREEN
-                    } else {
-                        Type.YELLOW
-                    }
-                }
-            )
-        }
-        prevGueses.add(res)
+        prevGueses.add(guess)
 
-        if (res.solved()) {
+        if (mask.isSolved()) {
             return prevGueses
         }
     }
 }
 
-val warmup = listOf("erase", "booty", "chill")
-    // listOf("slate", "crony", "humid")
-    // listOf("later", "sonic", "pudgy",)
-
 val rnd = Random(42)
 
-fun productionSolver(guesses: List<GuessWord>): String {
-    if (guesses.size < warmup.size) {
-        return warmup[guesses.size]
+fun productionSolver(history: List<String>, mask: Masks): String {
+    if (mask.yellowMask.mask == 0 && mask.blackMask.mask == 0) {
+        //
+        return "trace"
     } else {
-        val greens = guesses.flatMap {
-            it.withIndex().filter { (_, it) ->
-                it.type == Type.GREEN
-            }.map { (idx, it) ->
-                idx to it.sym
-            }
-        }.distinct()
+        val filteredTargets = ALL_TARGETS.filter {
+            mask.sutisfies(it)
+        }.filter { it !in history }
 
-        val yellows = guesses.flatMap {
-            it.filter { it.type == Type.YELLOW }.map {  it.sym }
-        }.distinct()
-
-        val blacks = guesses.flatMap {
-            it.filter { it.type == Type.BLACK }.map {  it.sym }
-        }.distinct()
-
-        val prevWords = guesses.map {
-            String(it.map {  it.sym }.toCharArray())
-        }.toSet()
-
-        val allVariants = ALL_TARGETS.filter { w ->
-            (w !in prevWords) && greens.all { (idx, char) ->
-                w[idx] == char
-            } && yellows.all {
-                it in w
-            } && blacks.all {
-                it !in w
-            }
-        }
-
-        // if (allVariants.size == 1) {
-            return allVariants.random(rnd)
-        /*
+        if (filteredTargets.size <= 3) {
+            return filteredTargets.first()
         } else {
-            // We need to select a word to split space in a maximum way
+            var goodFound = false
+            return ALL_WORDS
+                .filter { it !in history }
+                .maxByOrNull { w ->
+                    if (goodFound) {
+                        Int.MIN_VALUE
+                    } else {
+                        splitOnGroups(filteredTargets, w, mask).let {
+                            // println("$mask $w (${it.size}) \t$it")
+                            if (it.containsKey(mask)) {
+                                Int.MIN_VALUE
+                            } else {
+                                goodFound = it.size == filteredTargets.size
+                                it.size
+                            }
+                        }
+                    }
+                }!!
         }
-
-         */
     }
 }
 
-// fun splitOnGroups(input: List<String>, )
+/**
+ * This is the state of field
+ */
+data class Masks(
+    val greenMask: GreenMask,
+    val yellowMask: YellowMask,
+    val blackMask: YellowMask,
+) {
+    override fun toString() = "{ $greenMask '$yellowMask' '$blackMask' }"
+
+    companion object {
+        val EMPTY = Masks(GreenMask.empty(), YellowMask.NONE, YellowMask.NONE)
+    }
+
+    fun applyWord(word: String, target: String) =
+        Masks(
+            greenMask or GreenMask.betweenWords(target, word),
+            yellowMask or (YellowMask.fromWord(word) and YellowMask.fromWord(target)),
+            blackMask or (YellowMask.fromWord(word) and YellowMask.fromWord(target).inverted())
+        )
+
+    fun sutisfies(it: String) =
+        greenMask.sutisfies(it) &&
+                yellowMask.and(YellowMask.fromWord(it)) == yellowMask &&
+                blackMask.and(YellowMask.fromWord(it).inverted()) == blackMask
+
+    fun isSolved() = greenMask.isSolved()
+}
+
+fun splitOnGroups(input: Iterable<String>, word: String, masks: Masks): Map<Masks, List<String>> {
+    return input.groupBy {
+        masks.applyWord(word, it)
+    }
+}

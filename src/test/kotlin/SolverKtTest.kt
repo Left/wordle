@@ -3,22 +3,12 @@ import org.junit.jupiter.api.Test
 
 internal class SolverKtTest {
 
-    @Test
-    fun testSolver() {
-        val tries = (::productionSolver).singleRound("inert")
-
-        println(tries.println())
-    }
-
-
-
-    fun simpleSolver(guesses: List<GuessWord>): String {
-        if (guesses.size == 0) {
-            return "soare"
-        } else {
-            return "perky"
-        }
-    }
+//    @Test
+//    fun testSolver() {
+//        val tries = (::productionSolver).singleRound("inert")
+//
+//        println(tries.println())
+//    }
 
     @Test
     fun toLetterMask() {
@@ -35,4 +25,15 @@ internal class SolverKtTest {
         assertEquals(GreenMask.betweenWords("aerky", "aerky").toString(), "aerky")
         assertEquals(GreenMask.betweenWords("aaaaa", "bbbbb").toString(), "_____")
     }
+
+    @Test
+    fun masksPlay() {
+        val target = "acxyz"
+        println(Masks.EMPTY
+            .applyWord("aaaaa", target)
+            .applyWord("bcdef", target)
+            .applyWord("mcmmz", target)
+        )
+    }
+
 }

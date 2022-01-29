@@ -1,8 +1,15 @@
 
 
 fun main(args: Array<String>) {
+//    val w = "kinky"
+//    val tries = (::productionSolver).singleRound(w)
+//    println("$w $tries")
+//    return
+
     ALL_TARGETS.map { w ->
+        // println("$w")
         val tries = (::productionSolver).singleRound(w)
+        println("$w $tries")
         w to tries
     }
     .sortedBy { (w, tries) -> tries.size }

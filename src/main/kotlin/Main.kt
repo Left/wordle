@@ -6,14 +6,23 @@ fun main(args: Array<String>) {
 //    println("$w $tries")
 //    return
 
-    ALL_TARGETS.map { w ->
+    val results = ALL_TARGETS.map { w ->
         // println("$w")
         val tries = (::productionSolver).singleRound(w)
         println("$w $tries")
         w to tries
     }
-    .sortedBy { (w, tries) -> tries.size }
-    .forEachIndexed { idx, (w, tries) ->
-        println("${(idx + 1).toString().padStart(4, ' ')}) $w ${tries.size}")
-    }
+
+    results
+        .sortedBy { (w, tries) -> tries.size }
+        .forEachIndexed { idx, (w, tries) ->
+            println("${(idx + 1).toString().padStart(4, ' ')}) $w ${tries.size}")
+        }
+
+    results.groupBy { it.second.size }
+        .entries
+        .sortedBy { it.key }
+        .forEach {
+            println("${it.key} -> ${it.value.size}")
+        }
 }

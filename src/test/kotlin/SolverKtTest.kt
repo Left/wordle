@@ -36,4 +36,9 @@ internal class SolverKtTest {
         )
     }
 
+    @Test
+    fun y() {
+        println(YellowMask.fromIndexes("raise", listOf(0)))
+    }
+
 }

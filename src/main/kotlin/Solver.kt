@@ -1,6 +1,5 @@
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.random.Random
 
 /*
 enum class Type(val bg: String) {
@@ -27,6 +26,10 @@ value class GreenMask(val mask: Int) {
         fun empty() = GreenMask(0)
         fun betweenWords(target: String, candidate: String) = GreenMask(target.foldIndexed(0) { idx, l, r ->
             l or (if (candidate[idx] == r) (r - 'a' + 1) else 0).shl(idx*5)
+        })
+
+        fun fromIndexes(newWord: String, greens: List<Int?>) = GreenMask(newWord.foldIndexed(0) { idx, l, r ->
+            l or (if (idx in greens) (r - 'a' + 1) else 0).shl(idx*5)
         })
     }
 
@@ -86,6 +89,10 @@ value class YellowMask(val mask: Int) {
             l or (1 shl (r - 'a')).inv().and(1)
         })
 
+        fun fromIndexes(s: String, yellows: List<Int>) = YellowMask(s.toCharArray().foldIndexed(0) { idx, l, r ->
+            l or ((if (idx in yellows) 1 else 0) shl (r - 'a'))
+        })
+
         val NONE = YellowMask(0)
         val ALL = YellowMask(0x7fff_ffff)
     }
@@ -122,7 +129,7 @@ fun Solver.singleRound(word: String): List<String> {
 fun productionSolver(history: List<String>, mask: Masks): String {
     if (mask.yellowMask.mask == 0 && mask.blackMask.mask == 0) {
         //
-        return "trace"
+        return "raise"
     } else {
         val filteredTargets = ALL_TARGETS.filter {
             mask.sutisfies(it)
@@ -142,21 +149,21 @@ fun productionSolver(history: List<String>, mask: Masks): String {
             // println("-".repeat(30))
             return ALL_TARGETS
                 .filter { it !in history }
-                .maxByOrNull { w ->
+                .minByOrNull { w ->
                     if (goodFound) {
-                        Int.MIN_VALUE
+                        Int.MAX_VALUE
                     } else {
                         splitOnGroups(filteredTargets, w, mask).let { mapp ->
                             if (mapp.containsKey(mask)) {
-                                Int.MIN_VALUE
+                                Int.MAX_VALUE
                             } else {
                                 goodFound = mapp.size == filteredTargets.size
-                                mapp.size
+                                // mapp.size
+                                mapp.values.maxOf { it.size }
                                 /*
                                 ((mapp.size * mapp.size) / mapp.values.maxOf { it.size }).also {
                                     // println("$mask $w (${mapp.size} $it) \t$mapp")
                                 }
-
                                  */
                             }
                         }

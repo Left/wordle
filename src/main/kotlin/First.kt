@@ -11,15 +11,15 @@ fun main() {
 
      */
 
-    ALL_WORDS.map { w ->
+    ALL_TARGETS.map { w ->
         w to splitOnGroups(ALL_TARGETS, w, Masks(
             GreenMask.empty(),
             YellowMask.NONE,
             YellowMask.NONE
         ))
     }
-    .sortedBy { (w, mapp) ->
-        ((mapp.size * mapp.size * mapp.size) / mapp.values.maxOf { it.size })
+    .sortedByDescending { (w, mapp) ->
+        mapp.values.maxOf { it.size }
     }
     .forEachIndexed { idx, it ->
         println("${idx.toString().padStart(4, ' ')}) ${it.first} ${it.second.size}")

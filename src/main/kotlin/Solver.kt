@@ -140,7 +140,7 @@ fun productionSolver(history: List<String>, mask: Masks): String {
         } else {
             var goodFound = false
             // println("-".repeat(30))
-            return ALL_WORDS
+            return ALL_TARGETS
                 .filter { it !in history }
                 .maxByOrNull { w ->
                     if (goodFound) {
@@ -151,9 +151,13 @@ fun productionSolver(history: List<String>, mask: Masks): String {
                                 Int.MIN_VALUE
                             } else {
                                 goodFound = mapp.size == filteredTargets.size
+                                mapp.size
+                                /*
                                 ((mapp.size * mapp.size) / mapp.values.maxOf { it.size }).also {
                                     // println("$mask $w (${mapp.size} $it) \t$mapp")
                                 }
+
+                                 */
                             }
                         }
                     }

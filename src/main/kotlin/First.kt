@@ -16,11 +16,13 @@ fun main() {
             GreenMask.empty(),
             YellowMask.NONE,
             YellowMask.NONE
-        )).size
+        ))
     }
-    .sortedBy { it.second }
+    .sortedBy { (w, mapp) ->
+        ((mapp.size * mapp.size * mapp.size) / mapp.values.maxOf { it.size })
+    }
     .forEachIndexed { idx, it ->
-        println("${idx.toString().padStart(4, ' ')}) ${it.first} ${it.second}")
+        println("${idx.toString().padStart(4, ' ')}) ${it.first} ${it.second.size}")
     }
 
 

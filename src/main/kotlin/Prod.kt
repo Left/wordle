@@ -22,7 +22,7 @@ fun main() {
     while (!solved) {
         val newWord = productionSolver(words, mask)
         words.add(newWord)
-        println(words.joinToString(" "))
+        println(newWord)
         println("Yellow (f.e. 1 2 3 4 5): ")
         val yellows = readln().split(" ")
             .map { it.toIntOrNull() }
@@ -34,11 +34,12 @@ fun main() {
             .filterNotNull()
             .map { it  - 1}
 
+        val yellowMask = YellowMask.fromIndexes(newWord, yellows) or YellowMask.fromIndexes(newWord, greens)
         mask = Masks(
             mask.greenMask or GreenMask.fromIndexes(newWord, greens),
-            mask.yellowMask or (YellowMask.fromIndexes(newWord, yellows)),
+            mask.yellowMask or yellowMask,
             mask.blackMask or
-                    (YellowMask.fromWord(newWord) and YellowMask.fromIndexes(newWord, yellows).inverted() and mask.yellowMask.inverted()),
+                    (YellowMask.fromWord(newWord) and yellowMask.inverted() and mask.yellowMask.inverted()),
         )
 
         println(mask)
